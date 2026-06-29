@@ -5,6 +5,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
+import { youtubeRoutes } from './modules/youtube/routes';
 
 dotenv.config();
 
@@ -47,6 +48,8 @@ app.register(fastifyStatic, {
   index: false,
   list: false,
 });
+
+app.register(youtubeRoutes, { prefix: '/api/youtube' });
 
 // Basic health check route
 app.get('/health', async () => {
