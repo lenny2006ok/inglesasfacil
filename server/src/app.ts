@@ -1,7 +1,9 @@
+import path from 'node:path';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,6 +11,8 @@ dotenv.config();
 export const app = fastify({
   logger: true,
 });
+
+const frontendDistPath = path.resolve(__dirname, '../../dist');
 
 app.register(cors, {
   origin: '*', // TODO: restrict in production
@@ -36,7 +40,31 @@ app.register(swaggerUi, {
   }
 });
 
+app.register(fastifyStatic, {
+  root: frontendDistPath,
+  prefix: '/',
+  wildcard: false,
+  index: false,
+  list: false,
+});
+
 // Basic health check route
-app.get('/health', async (request, reply) => {
+app.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+app.setNotFoundHandler(async (request, reply) => {
+  if (request.method !== 'GET') {
+    return reply.callNotFound();
+  }
+
+  const pathname = request.raw.url?.split('?')[0] ?? '/';
+  const isApiRoute = pathname.startsWith('/api') || pathname.startsWith('/docs') || pathname.startsWith('/health');
+  const hasExtension = path.extname(pathname) !== '';
+
+  if (isApiRoute || hasExtension) {
+    return reply.callNotFound();
+  }
+
+  return reply.sendFile('index.html', frontendDistPath);
 });

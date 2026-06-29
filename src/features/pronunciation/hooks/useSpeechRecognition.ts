@@ -6,26 +6,41 @@ interface SpeechResult {
   isFinal: boolean;
 }
 
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 export function useSpeechRecognition() {
   const [isListening, setIsListening] = useState(false);
   const [result, setResult] = useState<SpeechResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSupport, setHasSupport] = useState(true);
-  
-  // @ts-expect-error - SpeechRecognition is not fully typed in standard TS yet
-  const recognitionRef = useRef<window.SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    // @ts-expect-error - Vendor prefixes
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
+    const speechRecognitionWindow = window as Window & typeof globalThis & {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const SpeechRecognitionCtor = speechRecognitionWindow.SpeechRecognition || speechRecognitionWindow.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
       setHasSupport(false);
       setError('Seu navegador não suporta a Web Speech API. Tente usar o Google Chrome.');
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.lang = 'en-US';
     recognition.interimResults = true; // Feedback em tempo real
     recognition.continuous = false;    // Para de ouvir após o silêncio
@@ -71,5 +86,5 @@ export function useSpeechRecognition() {
     }
   }, []);
 
-  return { isListening, result, error, hasSupport, startListening, stopListening };
+  return { isListening, transcript: result?.transcript ?? '', result, error, hasSupport, startListening, stopListening };
 }

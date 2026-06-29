@@ -13,9 +13,9 @@ export const PronunciationLab: React.FC<PronunciationLabProps> = ({ expectedText
 
   useEffect(() => {
     if (!isListening && transcript) {
-      const { overall, words } = scorePronunciation(expectedText, transcript);
-      setOverallScore(overall);
-      setWordScores(words);
+      const { overallScore: evaluatedScore, wordScores: evaluatedWords } = scorePronunciation(expectedText, transcript);
+      setOverallScore(evaluatedScore);
+      setWordScores(evaluatedWords);
     }
   }, [isListening, transcript, expectedText]);
 

@@ -7,6 +7,7 @@ export interface WordScore {
   recognized: string;
   phonemeMatch: boolean;
   similarity: number; // 0.0 - 1.0
+  score: number;
   status: 'correct' | 'partial' | 'incorrect';
 }
 
@@ -49,6 +50,7 @@ export function scorePronunciation(expected: string, recognized: string): {
       recognized: recWord,
       phonemeMatch,
       similarity: combinedScore,
+      score: combinedScore * 100,
       status: combinedScore >= 0.8 ? 'correct' : combinedScore >= 0.5 ? 'partial' : 'incorrect',
     };
   });
