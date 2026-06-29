@@ -2,18 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface VideoPlayerProps {
   videoId: string;
+  startTime?: number;
+  durationSeconds?: number;
   onTimeUpdate?: (currentTime: number) => void;
   onStateChange?: (state: number) => void;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, onTimeUpdate, onStateChange }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, startTime = 0, durationSeconds = 15, onTimeUpdate, onStateChange }) => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isApiReady, setIsApiReady] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Load YouTube IFrame API
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -34,26 +35,44 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, onTimeUpdate,
   useEffect(() => {
     if (!isApiReady || !containerRef.current || !videoId) return;
 
+    const loadClip = () => {
+      if (!playerRef.current) return;
+
+      if (startTime > 0) {
+        const endSeconds = startTime + durationSeconds;
+        playerRef.current.loadVideoById({
+          videoId,
+          startSeconds: startTime,
+          endSeconds,
+        });
+      } else {
+        playerRef.current.loadVideoById({ videoId });
+      }
+    };
+
     if (playerRef.current) {
-      playerRef.current.loadVideoById(videoId);
+      loadClip();
       return;
     }
 
     playerRef.current = new window.YT.Player(containerRef.current, {
       height: '390',
       width: '100%',
-      videoId: videoId,
+      videoId,
       playerVars: {
         controls: 1,
         disablekb: 0,
         modestbranding: 1,
         rel: 0,
+        playsinline: 1,
       },
       events: {
+        onReady: () => {
+          loadClip();
+        },
         onStateChange: (event: any) => {
           if (onStateChange) onStateChange(event.data);
 
-          // Track time if playing
           if (event.data === window.YT.PlayerState.PLAYING) {
             intervalRef.current = window.setInterval(() => {
               if (playerRef.current && playerRef.current.getCurrentTime && onTimeUpdate) {
@@ -66,13 +85,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, onTimeUpdate,
         }
       }
     });
-
-  }, [isApiReady, videoId]);
+  }, [isApiReady, videoId, startTime, durationSeconds]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
-      {/* O containerRef será substituído pelo iframe do YouTube */}
-      <div ref={containerRef}></div>
+    <div style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--glass-border)' }}>
+      <div ref={containerRef} style={{ aspectRatio: '16 / 9' }} />
     </div>
   );
 };
