@@ -54,8 +54,12 @@ app.get('/health', async () => {
 });
 
 app.setNotFoundHandler(async (request, reply) => {
+  if (request.method === 'HEAD') {
+    return reply.code(404).send();
+  }
+
   if (request.method !== 'GET') {
-    return reply.callNotFound();
+    return reply.code(404).send({ error: 'Not Found' });
   }
 
   const pathname = request.raw.url?.split('?')[0] ?? '/';
@@ -63,7 +67,7 @@ app.setNotFoundHandler(async (request, reply) => {
   const hasExtension = path.extname(pathname) !== '';
 
   if (isApiRoute || hasExtension) {
-    return reply.callNotFound();
+    return reply.code(404).send({ error: 'Not Found' });
   }
 
   return reply.sendFile('index.html', frontendDistPath);
